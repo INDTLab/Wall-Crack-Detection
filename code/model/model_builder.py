@@ -15,7 +15,7 @@ from model.FastSCNN import FastSCNN
 from model.DABNet import DABNet
 from model.FSSNet import FSSNet
 from model.FPENet import FPENet
-from model.oursNet import oursNet
+from model.oursNet import SEDNet
 
 
 def build_model(model_name, num_classes):
@@ -53,5 +53,5 @@ def build_model(model_name, num_classes):
         return FSSNet(classes=num_classes)
     elif model_name == 'FPENet':
         return FPENet(classes=num_classes)
-    elif model_name == 'oursNet':
-        return oursNet(classes=num_classes)
+    elif model_name == 'SEDNet':
+        return SEDNet(classes=num_classes)

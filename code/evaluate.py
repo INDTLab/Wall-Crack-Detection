@@ -12,7 +12,6 @@ def evaluate(model, dataloader, device, amp=False, viz = False, outfolder = None
     model.eval()
     num_val_batches = len(dataloader)
     dice_score = 0
-    time_list = []
     # iterate over the validation set
     with torch.autocast(device.type if device.type != 'cuda' else 'cpu', enabled=amp):
        for batch_idx, batch in tqdm(enumerate(dataloader), total=num_val_batches, desc='Validation round', unit='batch', leave=False):
@@ -22,11 +21,8 @@ def evaluate(model, dataloader, device, amp=False, viz = False, outfolder = None
             image = image.to(device=device, dtype=torch.float32, memory_format=torch.channels_last)
             mask_true = mask_true.to(device=device, dtype=torch.long)
 
-            start_time = time.time()
             # predict the mask
             mask_pred = model(image)
-            end_time = time.time() - start_time
-            time_list.append(end_time)
             
             assert mask_true.min() >= 0 and mask_true.max() <= 1, 'True mask indices should be in [0, 1]'
             mask_pred = (torch.sigmoid(mask_pred) > 0.5).float()
@@ -75,6 +71,5 @@ def evaluate(model, dataloader, device, amp=False, viz = False, outfolder = None
                     
                 pil_grid.save(save_path)
                 
-    print("FPS:{}".format(sum(time_list)))
     model.train()
     return dice_score / max(num_val_batches, 1)

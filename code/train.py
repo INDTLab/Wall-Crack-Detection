@@ -25,10 +25,10 @@ from model.model_builder import build_model
 dir_checkpoint = Path('./checkpoints/')
 
 def get_args():
-    parser = argparse.ArgumentParser(description='Train the UNet on images and target masks')
+    parser = argparse.ArgumentParser(description='Train on images and target masks')
     parser.add_argument('--epochs', '-e', metavar='E', type=int, default=100, help='Number of epochs')
     parser.add_argument('--batch-size', '-b', dest='batch_size', metavar='B', type=int, default=1, help='Batch size')
-    parser.add_argument('--model', '-m',type=str, default="oursNet", help="model name: (default oursNet)")
+    parser.add_argument('--model', '-m',type=str, default="SEDNet", help="model name: (default oursNet)")
     parser.add_argument('--load', '-f', type=str, default=False, help='Load model from a .pth file')
     parser.add_argument('--save_checkpoint', '-s', type=bool, default=True)
     parser.add_argument('--data', type=str, default='../data_50', help='Data set path')

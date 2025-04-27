@@ -15,7 +15,7 @@ from model.FastSCNN import FastSCNN
 from model.DABNet import DABNet
 from model.FSSNet import FSSNet
 from model.FPENet import FPENet
-from model.oursNet import SEDNet
+from model.SEDNet import SEDNet
 
 
 def build_model(model_name, num_classes):

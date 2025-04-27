@@ -1,12 +1,10 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torchsummary import summary
-from IPython import embed
 from .module.transformer import TransBlock
 from .module.patch import reverse_patches
 
-__all__ = ["oursNet"]
+__all__ = ["SEDNet"]
 
 
 class Conv(nn.Module):
@@ -44,7 +42,7 @@ class BNPReLU(nn.Module):
         return output
 
 
-class DABModule(nn.Module):
+class LCBModule(nn.Module):
     def __init__(self, nIn, d=1, kSize=3, dkSize=3):
         super().__init__()
 
@@ -286,7 +284,7 @@ class LongConnection(nn.Module):
         return output
                  
 
-class oursNet(nn.Module):
+class SEDNet(nn.Module):
     def __init__(self, classes=19, block_1=3, block_2=12, block_3=12, block_4=3, block_5 = 3, block_6 = 3):
         super().__init__()
         self.init_conv = nn.Sequential(
@@ -294,50 +292,48 @@ class oursNet(nn.Module):
             Conv(32, 32, 3, 1, padding=1, bn_acti=True),
             Conv(32, 32, 3, 2, padding=1, bn_acti=True),
         )
-        # DAB Block 1
+
         self.bn_prelu_1 = BNPReLU(32)
 
         self.downsample_1 = DownSamplingBlock(32, 64)
 
-        self.DAB_Block_1 = nn.Sequential()
+        self.LCB_Block_1 = nn.Sequential()
         for i in range(0, block_1):
-            self.DAB_Block_1.add_module("DAB_Module_1_" + str(i), DABModule(64, d=2))
+            self.LCB_Block_1.add_module("LCB_Module_1_" + str(i), LCBModule(64, d=2))
         self.bn_prelu_2 = BNPReLU(64)
 
-        # DAB Block 2
         dilation_block_2 = [1,1, 2, 2, 4, 4, 8, 8, 16, 16,32,32]
         self.downsample_2 = DownSamplingBlock(64, 128)
-        self.DAB_Block_2 = nn.Sequential()
+        self.LCB_Block_2 = nn.Sequential()
         for i in range(0, block_2):
-            self.DAB_Block_2.add_module("DAB_Module_2_" + str(i),
-                                        DABModule(128, d=dilation_block_2[i]))
+            self.LCB_Block_2.add_module("LCB_Module_2_" + str(i),
+                                        LCBModule(128, d=dilation_block_2[i]))
         self.bn_prelu_3 = BNPReLU(128)
 
         #Up
         dilation_block_up = [2, 2, 2]
-        self.DAB_Block_up = nn.Sequential()
+        self.LCB_Block_up = nn.Sequential()
         for i in range(0, 3):
-           self.DAB_Block_up.add_module("DAB_Module_up_" + str(i),
-                                       DABModule(128, d=dilation_block_up[i]))
+           self.LCB_Block_up.add_module("LCB_Module_up_" + str(i),
+                                       LCBModule(128, d=dilation_block_up[i]))
         self.upsample_up = UpsampleingBlock(128, 64)
         self.bn_prelu_up = BNPReLU(64)
         # Down
         self.downsample_down = DownSamplingBlock(64, 128)
-        self.DAB_Block_down = nn.Sequential()
+        self.LCB_Block_down = nn.Sequential()
         for i in range(0, block_2):
-            self.DAB_Block_down.add_module("DAB_Module_down_" + str(i),
-                                        DABModule(128, d=dilation_block_2[i]))
+            self.LCB_Block_down.add_module("LCB_Module_down_" + str(i),
+                                        LCBModule(128, d=dilation_block_2[i]))
         self.bn_prelu_down = BNPReLU(128)
 
 
-        # DAB Block 3
-        #dilation_block_3 = [2, 5, 7, 9, 13, 17]
+
         dilation_block_3 = [1,1, 2, 2, 4, 4, 8, 8, 16, 16,32,32]
         self.downsample_3 = DownSamplingBlock(128, 32)
-        self.DAB_Block_3 = nn.Sequential()
+        self.LCB_Block_3 = nn.Sequential()
         for i in range(0, block_3):
-            self.DAB_Block_3.add_module("DAB_Module_3_" + str(i),
-                                        DABModule(32, d=dilation_block_3[i]))
+            self.LCB_Block_3.add_module("LCB_Module_3_" + str(i),
+                                        LCBModule(32, d=dilation_block_3[i]))
         self.bn_prelu_4 = BNPReLU(32)
         
         
@@ -347,36 +343,36 @@ class oursNet(nn.Module):
         
 #DECODER
         dilation_block_4 = [2, 2, 2]
-        self.DAB_Block_4 = nn.Sequential()
+        self.LCB_Block_4 = nn.Sequential()
         for i in range(0, block_4):
-           self.DAB_Block_4.add_module("DAB_Module_4_" + str(i),
-                                       DABModule(32, d=dilation_block_4[i]))
+           self.LCB_Block_4.add_module("LCB_Module_4_" + str(i),
+                                       LCBModule(32, d=dilation_block_4[i]))
         self.upsample_1 = UpsampleingBlock(32, 16)
         self.bn_prelu_5 = BNPReLU(16)
         
 
         dilation_block_5 = [2, 2, 2]
-        self.DAB_Block_5 = nn.Sequential()
+        self.LCB_Block_5 = nn.Sequential()
         for i in range(0, block_5):
-            self.DAB_Block_5.add_module("DAB_Module_5_" + str(i),
-                                        DABModule(16, d=dilation_block_5[i]))
+            self.LCB_Block_5.add_module("LCB_Module_5_" + str(i),
+                                        LCBModule(16, d=dilation_block_5[i]))
         self.upsample_2 = UpsampleingBlock(16, 16)
         self.bn_prelu_6 = BNPReLU(16)
         
         dilation_block_5 = [2, 2, 2]
-        self.DAB_Block_5 = nn.Sequential()
+        self.LCB_Block_5 = nn.Sequential()
         for i in range(0, block_5):
-            self.DAB_Block_5.add_module("DAB_Module_5_" + str(i),
-                                        DABModule(16, d=dilation_block_5[i]))
+            self.LCB_Block_5.add_module("LCB_Module_5_" + str(i),
+                                        LCBModule(16, d=dilation_block_5[i]))
         self.upsample_2 = UpsampleingBlock(16, 16)
         self.bn_prelu_6 = BNPReLU(16)
         
         
         dilation_block_6 = [2, 2, 2]
-        self.DAB_Block_6 = nn.Sequential()
+        self.LCB_Block_6 = nn.Sequential()
         for i in range(0, block_6):
-            self.DAB_Block_6.add_module("DAB_Module_6_" + str(i),
-                                        DABModule(16, d=dilation_block_6[i]))
+            self.LCB_Block_6.add_module("LCB_Module_6_" + str(i),
+                                        LCBModule(16, d=dilation_block_6[i]))
         self.upsample_3 = UpsampleingBlock(16, 16)
         self.bn_prelu_7 = BNPReLU(16)
         
@@ -394,42 +390,33 @@ class oursNet(nn.Module):
         self.classifier = nn.Sequential(Conv(16, classes, 1, 1, padding=0))
 
     def forward(self, input):
-# output0 shape: torch.Size([15, 32, 200, 200])
-# output1 shape: torch.Size([15, 64, 100, 100])
-# output2 shape: torch.Size([15, 128, 50, 50])
-# output3 shape: torch.Size([15, 32, 25, 25])
-#outputtf shape: torch.Size([15, 32, 25, 25])
-# output4 shape: torch.Size([15, 16, 50, 50])
-# output5 shape: torch.Size([15, 16, 100, 100])
-# output6 shape: torch.Size([15, 16, 200, 200])
+
         output0 = self.init_conv(input)
         
         output0 = self.bn_prelu_1(output0)
 
-        # DAB Block 1
         output1_0 = self.downsample_1(output0)
-        output1 = self.DAB_Block_1(output1_0)
+        output1 = self.LCB_Block_1(output1_0)
         output1 = self.bn_prelu_2(output1)
 
-        # DAB Block 2
+
         output2_0 = self.downsample_2(output1)
-        output2 = self.DAB_Block_2(output2_0)
+        output2 = self.LCB_Block_2(output2_0)
         output2 = self.bn_prelu_3(output2)
 
         #Up
-        output_up = self.DAB_Block_up(output2)
+        output_up = self.LCB_Block_up(output2)
         output_up = self.upsample_up(output_up)
         output_up = self.bn_prelu_up(output_up)
         
         # Down
         output_down = self.downsample_down(output_up)
-        output_down = self.DAB_Block_down(output_down)
+        output_down = self.LCB_Block_down(output_down)
         output_down = self.bn_prelu_down(output_down)
         
 
-        # DAB Block 3
         output3_0 = self.downsample_3(output2)
-        output3 = self.DAB_Block_3(output3_0)
+        output3 = self.LCB_Block_3(output3_0)
         output3 = self.bn_prelu_4(output3)
 
         #Transformer
@@ -442,17 +429,17 @@ class oursNet(nn.Module):
 
         
         #DECODER            
-        output4 = self.DAB_Block_4(output4)
+        output4 = self.LCB_Block_4(output4)
         output4 = self.upsample_1(output4 + self.LC3(output3))
         output4 = self.bn_prelu_5(output4)
 
         
-        output5 = self.DAB_Block_5(output4)
+        output5 = self.LCB_Block_5(output4)
         output5 = self.upsample_2(output5 + self.LC2(output2))
         output5 = self.bn_prelu_6(output5)
 
         
-        output6 = self.DAB_Block_6(output5)
+        output6 = self.LCB_Block_6(output5)
         output6 = self.upsample_3(output6 + self.LC1(output1))
         output6 = self.PA3(output6)
         output6 = self.bn_prelu_7(output6)
